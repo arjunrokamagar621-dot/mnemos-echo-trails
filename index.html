@@ -2,13 +2,27 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
-    <title>MNEMOS — Echo Trials · 10 Levels · Easy→Hard · False Leads</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <title>ECHO — 10 Levels · Easy→Hard · Smart Hints · Mobile Ready</title>
     <style>
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+            -webkit-touch-callout: none;
+        }
+        html, body {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            touch-action: manipulation;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
             user-select: none;
         }
         body {
@@ -17,14 +31,21 @@
             justify-content: center;
             align-items: center;
             min-height: 100vh;
+            min-height: 100dvh;
             font-family: 'Segoe UI', Tahoma, sans-serif;
             color: #e0e8f0;
             overflow: hidden;
+            position: fixed;
+            width: 100%;
+            height: 100%;
+            touch-action: none;
         }
         #app {
             position: relative;
             width: 820px;
-            max-width: 98vw;
+            max-width: 100vw;
+            max-height: 100vh;
+            max-height: 100dvh;
             aspect-ratio: 820/620;
             background: #0a0e17;
             border-radius: 28px;
@@ -33,6 +54,7 @@
             overflow: hidden;
             display: flex;
             flex-direction: column;
+            touch-action: none;
         }
         #gameCanvas {
             display: block;
@@ -43,6 +65,103 @@
             touch-action: none;
             flex: 1;
         }
+        
+        /* Mobile D-Pad */
+        #mobileControls {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            right: 20px;
+            display: none;
+            justify-content: space-between;
+            align-items: center;
+            pointer-events: none;
+            z-index: 15;
+            gap: 20px;
+        }
+        #mobileControls.active {
+            display: flex;
+        }
+        .dpad {
+            display: grid;
+            grid-template-columns: repeat(3, 56px);
+            grid-template-rows: repeat(3, 56px);
+            gap: 4px;
+            pointer-events: auto;
+            filter: drop-shadow(0 4px 12px rgba(0,0,0,0.5));
+        }
+        .dpad-btn {
+            width: 56px;
+            height: 56px;
+            background: rgba(16, 24, 40, 0.85);
+            border: 1.5px solid rgba(96, 165, 250, 0.4);
+            border-radius: 14px;
+            color: #60a5fa;
+            font-size: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            backdrop-filter: blur(10px);
+            transition: all 0.15s;
+            touch-action: none;
+            -webkit-touch-callout: none;
+        }
+        .dpad-btn:active {
+            background: rgba(96, 165, 250, 0.3);
+            border-color: #60a5fa;
+            transform: scale(0.92);
+            box-shadow: 0 0 20px rgba(96, 165, 250, 0.3);
+        }
+        .dpad-btn.empty {
+            background: transparent;
+            border: none;
+            pointer-events: none;
+        }
+        .dpad-up { grid-column: 2; grid-row: 1; }
+        .dpad-left { grid-column: 1; grid-row: 2; }
+        .dpad-right { grid-column: 3; grid-row: 2; }
+        .dpad-down { grid-column: 2; grid-row: 3; }
+        
+        .echo-btn-container {
+            pointer-events: auto;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+        }
+        .echo-btn {
+            width: 72px;
+            height: 72px;
+            background: rgba(16, 24, 40, 0.85);
+            border: 2px solid rgba(96, 165, 250, 0.6);
+            border-radius: 50%;
+            color: #60a5fa;
+            font-size: 14px;
+            font-weight: 600;
+            letter-spacing: 1px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            backdrop-filter: blur(10px);
+            transition: all 0.2s;
+            touch-action: none;
+            box-shadow: 0 0 30px rgba(96, 165, 250, 0.2);
+        }
+        .echo-btn:active {
+            background: rgba(96, 165, 250, 0.4);
+            transform: scale(0.9);
+            box-shadow: 0 0 50px rgba(96, 165, 250, 0.5);
+        }
+        .echo-btn-label {
+            color: #8899bb;
+            font-size: 10px;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        }
+
+        /* HUD */
         #hud {
             position: absolute;
             top: 12px;
@@ -83,7 +202,6 @@
         #hud .diff-easy { color: #34d399; font-weight: 600; }
         #hud .diff-medium { color: #fbbf24; font-weight: 600; }
         #hud .diff-hard { color: #f87171; font-weight: 600; }
-        #hud .decoy-warn { color: #a78bfa; font-weight: 600; }
         #hud .hint-box {
             width: 100%;
             background: rgba(0, 0, 0, 0.55);
@@ -101,6 +219,7 @@
         #hud .hint-box .hint-value { color: #fbbf24; font-weight: 600; margin-left: 6px; }
         @keyframes pulse { 0% { opacity: 1; } 100% { opacity: 0.3; } }
 
+        /* Quiz Modal */
         #quizModal {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(5, 8, 15, 0.75);
@@ -124,6 +243,7 @@
             font-size: 16px; font-weight: 400; color: #60a5fa; letter-spacing: 2px;
             margin-bottom: 6px; border-bottom: 1px solid #1f2a3f; padding-bottom: 10px;
             display: flex; align-items: center; justify-content: space-between; gap: 10px;
+            flex-wrap: wrap;
         }
         .quiz-box h3 .diff-tag {
             font-size: 11px; letter-spacing: 1px; padding: 3px 10px; border-radius: 20px;
@@ -135,14 +255,21 @@
             background: #0a0e17; border: 1px solid #1f2a3f; color: #c8d0dc;
             padding: 12px 8px; border-radius: 14px; font-size: 16px; cursor: pointer;
             transition: 0.2s; font-weight: 500; text-align: center;
+            touch-action: manipulation;
+            min-height: 48px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
         .quiz-box .opt-btn:hover { background: #1f2a3f; border-color: #60a5fa; color: #fff; transform: scale(1.02); }
+        .quiz-box .opt-btn:active { transform: scale(0.95); }
         .quiz-box .opt-btn.correct { background: #22c55e; border-color: #22c55e; color: #fff; }
         .quiz-box .opt-btn.wrong { background: #ef4444; border-color: #ef4444; color: #fff; }
         .quiz-box .opt-btn:disabled { cursor: not-allowed; opacity: 0.6; }
         .quiz-box .feedback { margin-top: 16px; font-size: 15px; min-height: 28px; }
         .quiz-box .sub-text { color: #6b7a8f; font-size: 13px; margin-top: 6px; letter-spacing: 0.3px; }
 
+        /* Overlays */
         .overlay {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(5, 8, 15, 0.92);
@@ -152,7 +279,7 @@
         }
         .overlay.active { display: flex; opacity: 1; pointer-events: auto; }
         .overlay h1 {
-            font-size: 48px; font-weight: 300; letter-spacing: 9px; color: #60a5fa;
+            font-size: 52px; font-weight: 300; letter-spacing: 10px; color: #60a5fa;
             text-shadow: 0 0 60px rgba(96, 165, 250, 0.15); margin-bottom: 4px;
         }
         .overlay .tagline { font-size: 16px; color: #8899bb; letter-spacing: 3px; margin-bottom: 28px; }
@@ -160,21 +287,56 @@
             background: transparent; border: 1px solid #2a3a4a; color: #e0e8f0;
             padding: 10px 40px; border-radius: 40px; font-size: 16px; font-weight: 500;
             cursor: pointer; transition: 0.25s; margin: 6px; min-width: 150px; letter-spacing: 1px;
+            touch-action: manipulation;
+            min-height: 48px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
         }
         .btn:hover { background: #1f2937; border-color: #60a5fa; color: #fff; box-shadow: 0 0 30px rgba(96, 165, 250, 0.08); }
+        .btn:active { transform: scale(0.95); }
         .btn.primary { background: #1f2937; border-color: #60a5fa; }
         .btn-group { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin-top: 8px; }
 
-        @media (max-width: 700px) {
-            #app { aspect-ratio: auto; height: 100vh; max-height: 100vh; border-radius: 0; }
-            .overlay h1 { font-size: 30px; }
-            .btn { min-width: 110px; padding: 8px 18px; font-size: 14px; }
+        /* Responsive */
+        @media (max-width: 700px), (max-height: 500px) {
+            #app { 
+                aspect-ratio: auto; 
+                width: 100vw; 
+                height: 100vh;
+                height: 100dvh;
+                max-height: 100vh;
+                max-height: 100dvh;
+                border-radius: 0; 
+                border: none;
+            }
+            .overlay h1 { font-size: 32px; letter-spacing: 6px; }
+            .btn { min-width: 110px; padding: 8px 18px; font-size: 14px; min-height: 44px; }
             #hud { font-size: 10px; top: 6px; left: 6px; right: 6px; }
             #hud .left, #hud .right { padding: 4px 10px; gap: 6px; }
             #hud .hint-box { font-size: 13px; padding: 4px 12px; }
             .quiz-box { padding: 20px; margin: 10px; }
             .quiz-box .options { grid-template-columns: 1fr 1fr; gap: 6px; }
-            .quiz-box .opt-btn { padding: 10px 4px; font-size: 14px; }
+            .quiz-box .opt-btn { padding: 10px 4px; font-size: 14px; min-height: 44px; }
+            .dpad { grid-template-columns: repeat(3, 48px); grid-template-rows: repeat(3, 48px); gap: 3px; }
+            .dpad-btn { width: 48px; height: 48px; font-size: 20px; border-radius: 12px; }
+            .echo-btn { width: 60px; height: 60px; font-size: 12px; }
+            #mobileControls { bottom: 10px; left: 10px; right: 10px; gap: 10px; }
+        }
+        @media (max-width: 380px) {
+            .dpad { grid-template-columns: repeat(3, 42px); grid-template-rows: repeat(3, 42px); gap: 2px; }
+            .dpad-btn { width: 42px; height: 42px; font-size: 18px; border-radius: 10px; }
+            .echo-btn { width: 52px; height: 52px; font-size: 10px; }
+            .quiz-box .question { font-size: 18px; }
+        }
+        
+        /* Landscape phone */
+        @media (max-height: 500px) and (orientation: landscape) {
+            #mobileControls { bottom: 5px; left: 5px; right: 5px; }
+            .dpad { grid-template-columns: repeat(3, 40px); grid-template-rows: repeat(3, 40px); }
+            .dpad-btn { width: 40px; height: 40px; font-size: 16px; }
+            .echo-btn { width: 48px; height: 48px; font-size: 10px; }
+            #hud { top: 4px; font-size: 9px; }
         }
     </style>
 </head>
@@ -190,7 +352,6 @@
                     <span id="hudScore">SCORE 0</span>
                     <span id="hudKey" class="key-icon">🔑 0</span>
                     <span id="hudDiff" class="diff-easy">EASY</span>
-                    <span id="hudDecoy" class="decoy-warn" style="display:none;">⚠ FALSE LEADS</span>
                 </div>
                 <div class="right">
                     <span id="hudEcho">ECHO <span class="highlight" id="echoTimer">—</span>s</span>
@@ -201,6 +362,25 @@
                 <span class="hint-label" id="hintLabel">🔍 FIND THE KEY</span>
                 <span class="hint-value" id="hintValue">4 + 4 = ?</span>
                 <span class="hint-label" style="margin-left:8px;">→ walk to that numbered tile</span>
+            </div>
+        </div>
+
+        <!-- Mobile Controls -->
+        <div id="mobileControls">
+            <div class="dpad">
+                <div class="dpad-btn empty"></div>
+                <div class="dpad-btn dpad-up" id="btnUp">▲</div>
+                <div class="dpad-btn empty"></div>
+                <div class="dpad-btn dpad-left" id="btnLeft">◀</div>
+                <div class="dpad-btn empty"></div>
+                <div class="dpad-btn dpad-right" id="btnRight">▶</div>
+                <div class="dpad-btn empty"></div>
+                <div class="dpad-btn dpad-down" id="btnDown">▼</div>
+                <div class="dpad-btn empty"></div>
+            </div>
+            <div class="echo-btn-container">
+                <div class="echo-btn" id="btnEcho">ECHO</div>
+                <div class="echo-btn-label">SPACE</div>
             </div>
         </div>
 
@@ -215,19 +395,18 @@
         </div>
 
         <div id="menuOverlay" class="overlay active">
-            <h1>MNEMOS</h1>
-            <div class="tagline">ECHO TRIALS · "Remember what you cannot see."</div>
+            <h1>ECHO</h1>
+            <div class="tagline">"Remember what you cannot see."</div>
             <div class="btn-group">
                 <button class="btn primary" id="btnPlay">PLAY</button>
                 <button class="btn" id="btnHowTo">HOW TO PLAY</button>
                 <button class="btn" id="btnExit">EXIT</button>
             </div>
             <div style="margin-top:22px; font-size:12px; color:#4a5a6a; text-align:center; max-width:420px;">
-                WASD / Arrows · SPACE for ECHO<br />
+                WASD / Arrows / Touch · SPACE or ECHO button<br />
                 Every open tile has a small number. Solve the arithmetic hint,<br />
                 then walk to the tile with that number.<br />
-                <span style="color:#60a5fa;">10 levels · easy → hard</span> ·
-                <span style="color:#a78bfa;">later levels hide false leads</span>
+                <span style="color:#60a5fa;">10 levels · questions get harder as you go</span>
             </div>
         </div>
 
@@ -238,7 +417,7 @@
                 <button class="btn primary" id="tutorialNext">NEXT</button>
                 <button class="btn" id="tutorialSkip">SKIP</button>
             </div>
-            <div style="margin-top:14px; font-size:12px; color:#4a5a6a;" id="tutorialStep">1 / 6</div>
+            <div style="margin-top:14px; font-size:12px; color:#4a5a6a;" id="tutorialStep">1 / 5</div>
         </div>
 
         <div id="pauseOverlay" class="overlay">
@@ -279,30 +458,11 @@
 
     <script>
         // ================================================================
-        //  MNEMOS: ECHO TRIALS
-        //  Fixes applied:
-        //   1. "HOW TO PLAY" now returns to the main menu instead of
-        //      silently starting the game (it used to be identical to PLAY).
-        //   2. generateHint() no longer has a fallback that reveals the
-        //      answer outright ("64 + 0") — the fallback is still a real
-        //      two-term puzzle.
-        //   3. Overlay elements are grabbed explicitly with getElementById
-        //      instead of relying on implicit window globals.
-        //   4. draw() is only called once per frame (previously called
-        //      twice during ECHO pulses, wasting canvas work).
-        //  New feature: ascending difficulty + false-lead "decoy" tiles.
-        //   - Levels 1-4:  no decoys (easy/medium warm-up).
-        //   - Levels 5-7:  1 decoy tile per level.
-        //   - Levels 8-10: 2 decoy tiles per level.
-        //  A decoy tile looks like any other numbered floor tile. Stepping
-        //  on it triggers a "VERIFY LOCATION" question. Answering it does
-        //  NOT grant the key/door — it's always a false lead — but a
-        //  correct answer costs less ECHO time than a wrong one, so the
-        //  extra question still matters and rewards actually solving it.
+        //  ECHO — Mobile + Desktop Ready
         // ================================================================
 
         // ----------------------------------------------------------------
-        //  1. QUESTION BANK — every question tagged with a difficulty tier
+        //  1. QUESTION BANK
         // ----------------------------------------------------------------
         const Q_BANK = [
             // MATH
@@ -376,1007 +536,5 @@
             return a;
         }
 
-        // Each question keeps its original Q_BANK index (idx) so quiz lookups still work.
         function tierPool(diff) {
-            return shuffleArray(Q_BANK.map((q, idx) => ({ ...q, idx })).filter(q => q.diff === diff));
-        }
-        const easyPool = tierPool('easy');     // used by levels 1-3  (needs 6)
-        const mediumPool = tierPool('medium'); // used by levels 4-7  (needs 8)
-        const hardPool = tierPool('hard');     // used by levels 8-10 (needs 6)
-        const tierPtr = { easy: 0, medium: 0, hard: 0 };
-
-        function tierForLevel(lv) {
-            if (lv < 3) return 'easy';
-            if (lv < 7) return 'medium';
-            return 'hard';
-        }
-
-        // How many false-lead decoy tiles appear on a given level (0-indexed).
-        // Ascending: none early, more as levels get harder.
-        function decoyCountForLevel(lv) {
-            if (lv < 4) return 0;   // Levels 1-4: pure easy/medium warm-up
-            if (lv < 7) return 1;   // Levels 5-7: one false lead
-            return 2;               // Levels 8-10: two false leads
-        }
-
-        function nextQuestion(tier) {
-            const pool = tier === 'easy' ? easyPool : tier === 'medium' ? mediumPool : hardPool;
-            const q = pool[tierPtr[tier] % pool.length];
-            tierPtr[tier]++;
-            return q;
-        }
-
-        // ----------------------------------------------------------------
-        //  2. HINT GENERATOR — arithmetic expression that evaluates to `target`
-        //     FIX: the old fallback ("64 + 0") revealed the answer outright.
-        //     The new fallback is still a genuine two-term puzzle.
-        // ----------------------------------------------------------------
-        function generateHint(target) {
-            let a, b, c, d, e, result, attempts = 0;
-            do {
-                a = Math.floor(Math.random() * 20) + 1;
-                b = Math.floor(Math.random() * 20) + 1;
-                c = Math.floor(Math.random() * 20) + 1;
-                d = Math.floor(Math.random() * 20) + 1;
-                e = Math.floor(Math.random() * 20) + 1;
-                result = a + b - c + d - e;
-                attempts++;
-            } while (result !== target && attempts < 8000);
-            if (attempts >= 8000) {
-                // Safe fallback: split target into two real terms instead of
-                // exposing it directly.
-                const split = Math.floor(target / 2);
-                return `${split} + ${target - split}`;
-            }
-            return `${a} + ${b} - ${c} + ${d} - ${e}`;
-        }
-
-        // ----------------------------------------------------------------
-        //  3. LEVEL CONFIGURATIONS
-        //     Numbers are assigned ONLY to non-wall tiles, in the exact
-        //     order they're drawn, and the key/door/decoys are picked FROM
-        //     that numbered set — so every hint answer always matches a
-        //     real, reachable, visibly-numbered tile. No post-hoc relocation.
-        // ----------------------------------------------------------------
-        const TILE = { FLOOR: 0, WALL: 1, TRAP: 2, PLAYER: 3 };
-        const TILE_CHARS = { ' ': 0, 'W': 1, 'T': 2, 'P': 3 };
-
-        const trapPatterns = [
-            [],
-            [{ x: 2, y: 2 }],
-            [{ x: 3, y: 3 }, { x: 4, y: 3 }],
-            [{ x: 2, y: 2 }, { x: 5, y: 4 }],
-            [{ x: 3, y: 2 }, { x: 5, y: 2 }, { x: 3, y: 5 }],
-            [{ x: 2, y: 4 }, { x: 4, y: 2 }, { x: 6, y: 4 }],
-            [{ x: 2, y: 2 }, { x: 4, y: 4 }, { x: 6, y: 2 }, { x: 2, y: 6 }],
-            [{ x: 3, y: 3 }, { x: 4, y: 3 }, { x: 5, y: 3 }],
-            [{ x: 2, y: 2 }, { x: 2, y: 4 }, { x: 4, y: 2 }, { x: 4, y: 4 }, { x: 6, y: 6 }],
-            [{ x: 2, y: 2 }, { x: 3, y: 4 }, { x: 5, y: 2 }, { x: 6, y: 4 }, { x: 3, y: 6 }, { x: 5, y: 6 }],
-        ];
-
-        const PLAYER_START = { x: 1, y: 1 };
-        const LEVEL_CONFIGS = [];
-
-        for (let lv = 0; lv < 10; lv++) {
-            const baseGrid = [
-                "WWWWWWWW",
-                "W  P   W",
-                "W      W",
-                "W      W",
-                "W      W",
-                "W      W",
-                "W      W",
-                "WWWWWWWW"
-            ];
-            const gridArr = baseGrid.map(row => row.split(''));
-            const traps = trapPatterns[lv] || [];
-            traps.forEach(t => {
-                if (t.x >= 0 && t.x < 8 && t.y >= 0 && t.y < 8 && !(t.x === PLAYER_START.x && t.y === PLAYER_START.y)) {
-                    gridArr[t.y][t.x] = 'T';
-                }
-            });
-            const gridStrings = gridArr.map(row => row.join(''));
-            const height = gridStrings.length, width = gridStrings[0].length;
-
-            // Parse tiles, assign sequential numbers to every non-wall cell,
-            // and collect plain-floor cells (not wall, not trap, not player
-            // start) as candidates for the key, door, and decoys.
-            const tileGrid = [];
-            const numberGrid = [];
-            const validCells = [];
-            let counter = 0;
-            for (let y = 0; y < height; y++) {
-                tileGrid[y] = [];
-                numberGrid[y] = [];
-                for (let x = 0; x < width; x++) {
-                    const ch = gridStrings[y][x];
-                    let tile = TILE_CHARS[ch] !== undefined ? TILE_CHARS[ch] : TILE.FLOOR;
-                    if (tile === TILE.PLAYER) tile = TILE.FLOOR;
-                    tileGrid[y][x] = tile;
-                    if (tile === TILE.WALL) {
-                        numberGrid[y][x] = null;
-                    } else {
-                        counter++;
-                        numberGrid[y][x] = counter;
-                        const isStart = (x === PLAYER_START.x && y === PLAYER_START.y);
-                        if (tile === TILE.FLOOR && !isStart) {
-                            validCells.push({ x, y, num: counter });
-                        }
-                    }
-                }
-            }
-
-            const picks = shuffleArray(validCells);
-            const keyCell = picks[0];
-            const doorCell = picks[1];
-
-            const tier = tierForLevel(lv);
-            const qKey = nextQuestion(tier);
-            const qDoor = nextQuestion(tier);
-
-            // False-lead decoys: extra numbered tiles that are NEVER the
-            // real key or door. Reaching one triggers a verification
-            // question, but it always turns out to be a false lead.
-            const decoyCount = decoyCountForLevel(lv);
-            const decoys = [];
-            for (let i = 0; i < decoyCount; i++) {
-                const decoyCell = picks[2 + i];
-                if (!decoyCell) break;
-                const qDecoy = nextQuestion(tier);
-                decoys.push({
-                    pos: { x: decoyCell.x, y: decoyCell.y },
-                    num: decoyCell.num,
-                    quizIdx: qDecoy.idx,
-                });
-            }
-
-            LEVEL_CONFIGS.push({
-                grid: gridStrings,
-                numberGrid,
-                difficulty: tier,
-                keyPos: { x: keyCell.x, y: keyCell.y },
-                keyAnswer: keyCell.num,
-                keyHint: generateHint(keyCell.num),
-                keyQuizIdx: qKey.idx,
-                doorPos: { x: doorCell.x, y: doorCell.y },
-                doorAnswer: doorCell.num,
-                doorHint: generateHint(doorCell.num),
-                doorQuizIdx: qDoor.idx,
-                decoys,
-            });
-        }
-
-        // ----------------------------------------------------------------
-        //  4. GAME ENGINE
-        // ----------------------------------------------------------------
-        const canvas = document.getElementById('gameCanvas');
-        const ctx = canvas.getContext('2d');
-        const hud = document.getElementById('hud');
-        const hudLevel = document.getElementById('hudLevel');
-        const hudScore = document.getElementById('hudScore');
-        const hudKey = document.getElementById('hudKey');
-        const hudDiff = document.getElementById('hudDiff');
-        const hudDecoy = document.getElementById('hudDecoy');
-        const hudEcho = document.getElementById('hudEcho');
-        const echoTimerSpan = document.getElementById('echoTimer');
-        const hudMoves = document.getElementById('hudMoves');
-        const hintLabel = document.getElementById('hintLabel');
-        const hintValue = document.getElementById('hintValue');
-        const quizModal = document.getElementById('quizModal');
-        const quizTitle = document.getElementById('quizTitle');
-        const quizDiffTag = document.getElementById('quizDiffTag');
-        const quizQuestion = document.getElementById('quizQuestion');
-        const quizOptions = document.getElementById('quizOptions');
-        const quizFeedback = document.getElementById('quizFeedback');
-        const quizSubtext = document.getElementById('quizSubtext');
-
-        // FIX: overlays grabbed explicitly instead of relying on implicit
-        // window globals from element IDs.
-        const menuOverlay = document.getElementById('menuOverlay');
-        const tutorialOverlay = document.getElementById('tutorialOverlay');
-        const pauseOverlay = document.getElementById('pauseOverlay');
-        const completeOverlay = document.getElementById('completeOverlay');
-        const gameOverOverlay = document.getElementById('gameOverOverlay');
-        const profileOverlay = document.getElementById('profileOverlay');
-
-        const game = {
-            state: 'menu',
-            level: 0,
-            score: 0,
-            moves: 0,
-            deaths: 0,
-            totalEchoUses: 0,
-            levelEchoUses: 0,
-            keys: 0,
-            keyCollected: false,
-            doorUnlocked: false,
-            keyGridPos: null,
-            doorGridPos: null,
-            keyHint: '',
-            doorHint: '',
-            keyQuizIdx: -1,
-            doorQuizIdx: -1,
-            difficulty: 'easy',
-            numberGrid: [],
-            decoys: [],
-            levelDecoyHits: 0,
-            player: { x: 1, y: 1, trail: [] },
-            grid: [],
-            visible: [],
-            gridWidth: 8,
-            gridHeight: 8,
-            echoActive: false,
-            echoTimer: 0,
-            echoMaxTimer: 5,
-            echoPulse: 0,
-            echoParticles: [],
-            stars: [],
-            fogOffset: 0,
-            levelStartTime: 0,
-            levelDeaths: 0,
-            levelMoves: 0,
-            adaptiveDeaths: 0,
-            adaptiveEchoAvg: 0,
-            totalLevelsCompleted: 0,
-            profileShown: false,
-            showProfileAfter: 3,
-            tutorialStep: 0,
-            tutorialReturnToMenu: false,
-            tutorialSteps: [
-                'Every open tile is numbered. The key and door are hidden on two of them.',
-                'Solve the arithmetic hint on the HUD — the answer is a tile number.',
-                'Press SPACE to use ECHO — it reveals traps, but never the key or door.',
-                'Walk to the numbered tile that matches your answer to collect the key or open the door.',
-                'From Level 5 onward, some numbered tiles are FALSE LEADS. Stepping on one asks a verification question — but it is never the real key or door.',
-                'Move with WASD / Arrows. Questions get harder as you climb the 10 levels!'
-            ],
-            audioCtx: null,
-            soundEnabled: true,
-        };
-
-        function loadLevel(levelIdx) {
-            if (levelIdx >= LEVEL_CONFIGS.length) { showEnding(); return; }
-            const config = LEVEL_CONFIGS[levelIdx];
-            const height = config.grid.length;
-            const width = config.grid[0].length;
-            const grid = [];
-            const visible = [];
-            let player = { x: 1, y: 1 };
-
-            for (let y = 0; y < height; y++) {
-                grid[y] = [];
-                visible[y] = [];
-                const row = config.grid[y];
-                for (let x = 0; x < width; x++) {
-                    const ch = row[x] || ' ';
-                    let tile = TILE_CHARS[ch] !== undefined ? TILE_CHARS[ch] : TILE.FLOOR;
-                    grid[y][x] = tile;
-                    visible[y][x] = (tile !== TILE.TRAP);
-                    if (tile === TILE.PLAYER) {
-                        player = { x, y };
-                        grid[y][x] = TILE.FLOOR;
-                        visible[y][x] = true;
-                    }
-                }
-            }
-
-            game.keyGridPos = config.keyPos;
-            game.doorGridPos = config.doorPos;
-            game.keyHint = config.keyHint;
-            game.doorHint = config.doorHint;
-            game.keyQuizIdx = config.keyQuizIdx;
-            game.doorQuizIdx = config.doorQuizIdx;
-            game.difficulty = config.difficulty;
-            game.numberGrid = config.numberGrid;
-            game.decoys = config.decoys.map(d => ({ ...d, revealed: false }));
-            game.levelDecoyHits = 0;
-
-            game.grid = grid;
-            game.visible = visible;
-            game.player = { x: player.x, y: player.y, trail: [] };
-            game.gridWidth = width;
-            game.gridHeight = height;
-            game.keyCollected = false;
-            game.doorUnlocked = false;
-            game.keys = 0;
-            game.moves = 0;
-            game.levelEchoUses = 0;
-            game.levelDeaths = 0;
-            game.levelMoves = 0;
-            game.levelStartTime = performance.now();
-            game.echoActive = false;
-            game.echoTimer = 0;
-            game.echoPulse = 0;
-            game.echoParticles = [];
-
-            let base = 5 - 0.2 * levelIdx;
-            base = Math.max(2.5, base);
-            if (game.adaptiveDeaths > 3) base += 0.5;
-            if (game.adaptiveEchoAvg > 3) base += 0.3;
-            game.echoMaxTimer = Math.min(7, base);
-
-            game.state = 'playing';
-            hud.style.display = 'flex';
-            hideAllOverlays();
-            hudDecoy.style.display = game.decoys.length > 0 ? 'inline' : 'none';
-            updateHUD();
-            draw();
-        }
-
-        function showEnding() {
-            hideAllOverlays();
-            const overlay = document.createElement('div');
-            overlay.className = 'overlay active';
-            overlay.style.background = 'rgba(5,8,15,0.95)';
-            overlay.innerHTML = `
-                <h1 style="font-size:32px;">✦ MNEMOS</h1>
-                <div style="margin:20px 0; color:#aabbcc; text-align:center; max-width:500px;">
-                    <p>"You learned to remember what you could not see —</p>
-                    <p>and to doubt what only looked true."</p>
-                    <p style="margin-top:12px;">10 levels mastered.</p>
-                    <p style="margin-top:20px; color:#60a5fa; font-size:20px;">The world remembers you.</p>
-                </div>
-                <button class="btn primary" onclick="location.reload()">PLAY AGAIN</button>
-            `;
-            document.getElementById('app').appendChild(overlay);
-        }
-
-        function activateEcho() {
-            if (game.state !== 'playing' || game.echoActive) return;
-            game.echoActive = true;
-            game.echoTimer = game.echoMaxTimer;
-            game.echoPulse = 0;
-            game.echoParticles = [];
-            game.levelEchoUses++;
-            game.totalEchoUses++;
-            const gw = game.gridWidth, gh = game.gridHeight;
-            for (let y = 0; y < gh; y++) {
-                for (let x = 0; x < gw; x++) {
-                    if (game.grid[y][x] === TILE.TRAP) game.visible[y][x] = true;
-                }
-            }
-            for (let i = 0; i < 40; i++) {
-                const angle = Math.random() * Math.PI * 2;
-                const speed = 0.5 + Math.random() * 2.5;
-                game.echoParticles.push({
-                    x: game.player.x, y: game.player.y,
-                    vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed,
-                    life: 0.6 + Math.random() * 0.6, maxLife: 0.6 + Math.random() * 0.6,
-                    size: 2 + Math.random() * 5,
-                });
-            }
-            game.echoPulse = 0;
-            playSound('echo');
-            updateHUD();
-            draw();
-        }
-
-        function hideTraps() {
-            const gw = game.gridWidth, gh = game.gridHeight;
-            for (let y = 0; y < gh; y++) {
-                for (let x = 0; x < gw; x++) {
-                    if (game.grid[y][x] === TILE.TRAP) game.visible[y][x] = false;
-                }
-            }
-        }
-
-        function movePlayer(dx, dy) {
-            if (game.state !== 'playing' || game.echoActive) return;
-            const nx = game.player.x + dx, ny = game.player.y + dy;
-            if (nx < 0 || nx >= game.gridWidth || ny < 0 || ny >= game.gridHeight) return;
-            const tile = game.grid[ny][nx];
-            if (tile === TILE.WALL) return;
-            if (tile === TILE.TRAP) {
-                if (!game.visible[ny][nx]) { gameOver(); return; }
-                return;
-            }
-
-            game.player.x = nx;
-            game.player.y = ny;
-            game.player.trail.push({ x: nx, y: ny });
-            if (game.player.trail.length > 12) game.player.trail.shift();
-            game.moves++;
-            game.levelMoves++;
-            playSound('step');
-
-            // Check false-lead decoys first — a decoy always wins over a
-            // coincidental key/door match since it sits on its own tile.
-            const decoyIdx = game.decoys.findIndex(d => !d.revealed && d.pos.x === nx && d.pos.y === ny);
-            if (decoyIdx !== -1) {
-                triggerDecoyQuiz(decoyIdx);
-                updateHUD();
-                draw();
-                return;
-            }
-
-            if (!game.keyCollected && game.keyGridPos) {
-                if (nx === game.keyGridPos.x && ny === game.keyGridPos.y) {
-                    triggerKeyQuiz();
-                    updateHUD();
-                    draw();
-                    return;
-                }
-            }
-            if (game.keyCollected && !game.doorUnlocked && game.doorGridPos) {
-                if (nx === game.doorGridPos.x && ny === game.doorGridPos.y) {
-                    triggerDoorQuiz();
-                    updateHUD();
-                    draw();
-                    return;
-                }
-            }
-            updateHUD();
-            draw();
-        }
-
-        function diffLabel(d) { return d.toUpperCase(); }
-
-        function triggerKeyQuiz() {
-            game.state = 'quiz';
-            const qData = Q_BANK[game.keyQuizIdx % Q_BANK.length] || Q_BANK[0];
-            quizTitle.textContent = '🔑 KEY CHALLENGE';
-            quizDiffTag.textContent = diffLabel(qData.diff);
-            quizDiffTag.style.color = qData.diff === 'easy' ? '#34d399' : qData.diff === 'medium' ? '#fbbf24' : '#f87171';
-            quizQuestion.textContent = qData.q;
-            quizFeedback.textContent = '';
-            quizSubtext.textContent = 'Answer correctly to collect the key.';
-            quizOptions.innerHTML = '';
-            const shuffled = qData.opts.map((opt, i) => ({ text: opt, idx: i }));
-            shuffleArray(shuffled).forEach(opt => {
-                const btn = document.createElement('button');
-                btn.className = 'opt-btn';
-                btn.textContent = opt.text;
-                btn.dataset.idx = opt.idx;
-                btn.addEventListener('click', () => handleQuizAnswer(btn, opt.idx, qData.ans, 'key'));
-                quizOptions.appendChild(btn);
-            });
-            quizModal.classList.add('active');
-        }
-
-        function triggerDoorQuiz() {
-            game.state = 'quiz';
-            const qData = Q_BANK[game.doorQuizIdx % Q_BANK.length] || Q_BANK[1];
-            quizTitle.textContent = '🚪 DOOR CHALLENGE';
-            quizDiffTag.textContent = diffLabel(qData.diff);
-            quizDiffTag.style.color = qData.diff === 'easy' ? '#34d399' : qData.diff === 'medium' ? '#fbbf24' : '#f87171';
-            quizQuestion.textContent = qData.q;
-            quizFeedback.textContent = '';
-            quizSubtext.textContent = 'Answer correctly to unlock the door.';
-            quizOptions.innerHTML = '';
-            const shuffled = qData.opts.map((opt, i) => ({ text: opt, idx: i }));
-            shuffleArray(shuffled).forEach(opt => {
-                const btn = document.createElement('button');
-                btn.className = 'opt-btn';
-                btn.textContent = opt.text;
-                btn.dataset.idx = opt.idx;
-                btn.addEventListener('click', () => handleQuizAnswer(btn, opt.idx, qData.ans, 'door'));
-                quizOptions.appendChild(btn);
-            });
-            quizModal.classList.add('active');
-        }
-
-        // New: verification question for a false-lead decoy tile. Regardless
-        // of the answer, this tile is never the real key/door — but a
-        // correct answer costs less ECHO time than a wrong one.
-        function triggerDecoyQuiz(decoyIdx) {
-            game.state = 'quiz';
-            const decoy = game.decoys[decoyIdx];
-            const qData = Q_BANK[decoy.quizIdx % Q_BANK.length] || Q_BANK[0];
-            quizTitle.textContent = '❓ VERIFY LOCATION';
-            quizDiffTag.textContent = diffLabel(qData.diff);
-            quizDiffTag.style.color = '#a78bfa';
-            quizQuestion.textContent = qData.q;
-            quizFeedback.textContent = '';
-            quizSubtext.textContent = 'Something about this tile feels off — verify before trusting it.';
-            quizOptions.innerHTML = '';
-            const shuffled = qData.opts.map((opt, i) => ({ text: opt, idx: i }));
-            shuffleArray(shuffled).forEach(opt => {
-                const btn = document.createElement('button');
-                btn.className = 'opt-btn';
-                btn.textContent = opt.text;
-                btn.dataset.idx = opt.idx;
-                btn.addEventListener('click', () => handleDecoyAnswer(btn, opt.idx, qData.ans, decoyIdx));
-                quizOptions.appendChild(btn);
-            });
-            quizModal.classList.add('active');
-        }
-
-        function handleDecoyAnswer(btn, selectedIdx, correctIdx, decoyIdx) {
-            const allBtns = document.querySelectorAll('.opt-btn');
-            allBtns.forEach(b => b.disabled = true);
-            game.decoys[decoyIdx].revealed = true;
-            game.levelDecoyHits++;
-            const correct = selectedIdx === correctIdx;
-            if (correct) {
-                btn.classList.add('correct');
-                quizFeedback.textContent = '✅ Correct — but this is a false lead. -0.3s ECHO.';
-                quizFeedback.style.color = '#a78bfa';
-                game.echoMaxTimer = Math.max(2, game.echoMaxTimer - 0.3);
-            } else {
-                btn.classList.add('wrong');
-                quizFeedback.textContent = '❌ Wrong, and it was a false lead anyway. -1.0s ECHO.';
-                quizFeedback.style.color = '#f87171';
-                game.echoMaxTimer = Math.max(2, game.echoMaxTimer - 1.0);
-            }
-            playSound('echoend');
-            setTimeout(() => {
-                allBtns.forEach(b => { b.disabled = false; b.classList.remove('wrong', 'correct'); });
-                quizFeedback.textContent = '';
-                quizModal.classList.remove('active');
-                game.state = 'playing';
-                updateHUD();
-                draw();
-            }, 900);
-        }
-
-        function handleQuizAnswer(btn, selectedIdx, correctIdx, type) {
-            const allBtns = document.querySelectorAll('.opt-btn');
-            allBtns.forEach(b => b.disabled = true);
-            if (selectedIdx === correctIdx) {
-                btn.classList.add('correct');
-                quizFeedback.textContent = '✅ Correct!';
-                quizFeedback.style.color = '#22c55e';
-                setTimeout(() => {
-                    quizModal.classList.remove('active');
-                    if (type === 'key') {
-                        game.keyCollected = true;
-                        game.keys = 1;
-                        playSound('key');
-                        hintLabel.textContent = '🔑 FIND THE DOOR';
-                        hintValue.textContent = game.doorHint + ' = ?';
-                        game.state = 'playing';
-                        updateHUD();
-                        draw();
-                    } else {
-                        game.doorUnlocked = true;
-                        playSound('complete');
-                        game.state = 'playing';
-                        levelComplete();
-                    }
-                }, 600);
-            } else {
-                btn.classList.add('wrong');
-                quizFeedback.textContent = '❌ Wrong! -0.5s ECHO time.';
-                quizFeedback.style.color = '#f87171';
-                game.echoMaxTimer = Math.max(2, game.echoMaxTimer - 0.5);
-                setTimeout(() => {
-                    allBtns.forEach(b => { b.disabled = false; b.classList.remove('wrong', 'correct'); });
-                    quizFeedback.textContent = '';
-                    quizModal.classList.remove('active');
-                    game.state = 'playing';
-                    draw();
-                }, 800);
-            }
-        }
-
-        function gameOver() {
-            game.state = 'gameover';
-            game.deaths++;
-            game.levelDeaths++;
-            playSound('death');
-            gameOverOverlay.classList.add('active');
-        }
-
-        function levelComplete() {
-            game.state = 'complete';
-            const time = (performance.now() - game.levelStartTime) / 1000;
-            const moves = game.levelMoves;
-            const echoUses = game.levelEchoUses;
-            const deaths = game.levelDeaths;
-            const decoyHits = game.levelDecoyHits;
-            let score = 1000;
-            score -= Math.floor(time * 0.5);
-            score -= moves * 2;
-            score -= echoUses * 30;
-            score -= deaths * 80;
-            score -= decoyHits * 25;
-            score = Math.max(0, score);
-            game.score += score;
-            game.totalLevelsCompleted++;
-            game.adaptiveDeaths += game.levelDeaths;
-            game.adaptiveEchoAvg = (game.adaptiveEchoAvg * (game.totalLevelsCompleted - 1) + game.levelEchoUses) / game.totalLevelsCompleted;
-            document.getElementById('completeStats').innerHTML = `
-                Time: ${time.toFixed(1)}s<br>
-                Moves: ${moves}<br>
-                ECHO uses: ${echoUses}<br>
-                Deaths: ${deaths}<br>
-                ${decoyHits > 0 ? `False leads triggered: ${decoyHits}<br>` : ''}
-                <span style="color:#60a5fa;font-weight:600;">Score: ${score}</span>
-            `;
-            completeOverlay.classList.add('active');
-            playSound('complete');
-            if (game.totalLevelsCompleted === game.showProfileAfter && !game.profileShown) {
-                showProfile();
-            }
-        }
-
-        function showProfile() {
-            game.profileShown = true;
-            const memory = Math.min(100, Math.floor(80 - (game.adaptiveEchoAvg / 10) * 20 + 10));
-            const observation = Math.min(100, Math.floor(70 + (game.totalLevelsCompleted * 2) - (game.deaths * 1.5)));
-            const planning = Math.min(100, Math.floor(80 - (game.moves / 100) * 10 + 5));
-            const reaction = Math.min(100, Math.floor(60 + (game.totalLevelsCompleted * 5) - (game.deaths * 2)));
-            document.getElementById('profileStats').innerHTML = `
-                Memory: <span style="color:#60a5fa;">${memory}%</span><br>
-                Observation: <span style="color:#60a5fa;">${observation}%</span><br>
-                Planning: <span style="color:#60a5fa;">${planning}%</span><br>
-                Reaction: <span style="color:#60a5fa;">${reaction}%</span><br>
-                <span style="color:#8899bb;font-size:14px;">Thinking Style: ${memory > 70 ? 'Strategic Explorer' : 'Cautious Learner'}</span>
-            `;
-            profileOverlay.classList.add('active');
-            game.state = 'profile';
-        }
-
-        function draw() {
-            const w = canvas.width, h = canvas.height;
-            const gw = game.gridWidth, gh = game.gridHeight;
-            const cw = w / gw, ch = h / gh;
-
-            ctx.fillStyle = '#05080f';
-            ctx.fillRect(0, 0, w, h);
-            drawStars();
-
-            for (let y = 0; y < gh; y++) {
-                for (let x = 0; x < gw; x++) {
-                    const tile = game.grid[y][x];
-                    const visible = game.visible[y][x];
-                    const px = x * cw, py = y * ch;
-
-                    let color = '#0f1624';
-                    if (tile === TILE.WALL) color = '#1a2233';
-                    else if (tile === TILE.TRAP && visible) color = '#3a1a1a';
-                    else if (tile === TILE.TRAP && !visible) color = '#0a0e17';
-
-                    ctx.fillStyle = color;
-                    ctx.fillRect(px, py, cw, ch);
-
-                    if (tile === TILE.TRAP && visible) {
-                        ctx.fillStyle = '#f87171';
-                        ctx.font = `${cw*0.4}px sans-serif`;
-                        ctx.textAlign = 'center';
-                        ctx.textBaseline = 'middle';
-                        ctx.fillText('⚡', px + cw / 2, py + ch / 2);
-                    }
-
-                    // Tile number — the thing the arithmetic hint actually points to.
-                    if (tile !== TILE.WALL && game.numberGrid && game.numberGrid[y] && game.numberGrid[y][x]) {
-                        ctx.fillStyle = 'rgba(150,170,200,0.65)';
-                        ctx.font = `${Math.max(9, Math.floor(cw * 0.2))}px monospace`;
-                        ctx.textAlign = 'left';
-                        ctx.textBaseline = 'top';
-                        ctx.fillText(String(game.numberGrid[y][x]), px + 4, py + 3);
-                    }
-
-                    ctx.strokeStyle = 'rgba(30,50,70,0.25)';
-                    ctx.lineWidth = 0.5;
-                    ctx.strokeRect(px, py, cw, ch);
-                }
-            }
-
-            // Revealed false-lead decoys get a small marker so the player
-            // remembers not to bother re-checking them.
-            game.decoys.forEach(d => {
-                if (d.revealed) {
-                    const dx = d.pos.x * cw + cw / 2;
-                    const dy = d.pos.y * ch + ch / 2;
-                    ctx.fillStyle = 'rgba(167,139,250,0.85)';
-                    ctx.font = `${cw*0.35}px sans-serif`;
-                    ctx.textAlign = 'center';
-                    ctx.textBaseline = 'middle';
-                    ctx.fillText('✗', dx, dy);
-                }
-            });
-
-            for (let y = 0; y < gh; y++) {
-                for (let x = 0; x < gw; x++) {
-                    if (!game.visible[y][x]) {
-                        const px = x * cw, py = y * ch;
-                        ctx.fillStyle = 'rgba(5,8,15,0.5)';
-                        ctx.fillRect(px, py, cw, ch);
-                        ctx.fillStyle = `rgba(50,100,150,${0.03 + 0.02 * Math.sin(game.fogOffset + x + y)})`;
-                        ctx.fillRect(px, py, cw, ch);
-                    }
-                }
-            }
-
-            game.player.trail.forEach((pos, idx) => {
-                const alpha = idx / game.player.trail.length * 0.35;
-                const px = pos.x * cw + cw / 2;
-                const py = pos.y * ch + ch / 2;
-                ctx.fillStyle = `rgba(96,165,250,${alpha})`;
-                ctx.beginPath();
-                ctx.arc(px, py, Math.min(cw, ch) * 0.15 * (idx / game.player.trail.length), 0, Math.PI * 2);
-                ctx.fill();
-            });
-
-            const px = game.player.x * cw + cw / 2;
-            const py = game.player.y * ch + ch / 2;
-            const radius = Math.min(cw, ch) * 0.3;
-            const grad = ctx.createRadialGradient(px, py, 0, px, py, radius * 3);
-            grad.addColorStop(0, 'rgba(96,165,250,0.35)');
-            grad.addColorStop(1, 'rgba(96,165,250,0)');
-            ctx.fillStyle = grad;
-            ctx.beginPath();
-            ctx.arc(px, py, radius * 3, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.shadowColor = '#60a5fa';
-            ctx.shadowBlur = 30;
-            ctx.fillStyle = '#60a5fa';
-            ctx.beginPath();
-            ctx.arc(px, py, radius, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.shadowBlur = 0;
-
-            if (game.echoActive) {
-                const pulseRadius = (game.echoPulse / 0.8) * Math.max(cw, ch) * 2.5;
-                ctx.strokeStyle = `rgba(96,165,250,${Math.max(0, 1 - game.echoPulse/0.8)})`;
-                ctx.lineWidth = 3;
-                ctx.shadowColor = '#60a5fa';
-                ctx.shadowBlur = 20;
-                ctx.beginPath();
-                ctx.arc(px, py, pulseRadius, 0, Math.PI * 2);
-                ctx.stroke();
-                ctx.shadowBlur = 0;
-
-                game.echoParticles.forEach(p => {
-                    const ppx = p.x * cw + cw / 2 + p.vx * (1 - p.life / p.maxLife) * 50;
-                    const ppy = p.y * ch + ch / 2 + p.vy * (1 - p.life / p.maxLife) * 50;
-                    ctx.fillStyle = `rgba(96,165,250,${p.life/p.maxLife * 0.7})`;
-                    ctx.shadowBlur = 10;
-                    ctx.shadowColor = '#60a5fa';
-                    ctx.beginPath();
-                    ctx.arc(ppx, ppy, p.size * (p.life / p.maxLife), 0, Math.PI * 2);
-                    ctx.fill();
-                    ctx.shadowBlur = 0;
-                });
-            }
-
-            if (game.keyCollected && game.keyGridPos) {
-                const kx = game.keyGridPos.x * cw + cw / 2;
-                const ky = game.keyGridPos.y * ch + ch / 2;
-                ctx.fillStyle = '#fbbf24';
-                ctx.font = `${cw*0.5}px sans-serif`;
-                ctx.textAlign = 'center';
-                ctx.textBaseline = 'middle';
-                ctx.fillText('🔑', kx, ky);
-            }
-            if (game.doorUnlocked && game.doorGridPos) {
-                const dx = game.doorGridPos.x * cw + cw / 2;
-                const dy = game.doorGridPos.y * ch + ch / 2;
-                ctx.fillStyle = '#34d399';
-                ctx.font = `${cw*0.6}px sans-serif`;
-                ctx.textAlign = 'center';
-                ctx.textBaseline = 'middle';
-                ctx.fillText('🚪', dx, dy);
-            }
-        }
-
-        function initStars() {
-            for (let i = 0; i < 100; i++) {
-                game.stars.push({
-                    x: Math.random() * 820, y: Math.random() * 620,
-                    size: 0.5 + Math.random() * 1.5, speed: 0.02 + Math.random() * 0.04,
-                    alpha: 0.3 + Math.random() * 0.7,
-                });
-            }
-        }
-
-        function drawStars() {
-            game.stars.forEach(star => {
-                star.y += star.speed;
-                if (star.y > 620) { star.y = 0; star.x = Math.random() * 820; }
-                ctx.fillStyle = `rgba(200,220,255,${star.alpha * 0.4})`;
-                ctx.beginPath();
-                ctx.arc(star.x, star.y, star.size, 0, Math.PI * 2);
-                ctx.fill();
-            });
-        }
-
-        // FIX: no longer calls draw() internally — the game loop draws
-        // exactly once per frame now, regardless of ECHO state.
-        function updateEcho(delta) {
-            if (game.echoActive) {
-                game.echoTimer -= delta;
-                game.echoPulse += delta;
-                game.echoParticles.forEach(p => { p.life -= delta; p.x += p.vx * delta * 0.5; p.y += p.vy * delta * 0.5; });
-                game.echoParticles = game.echoParticles.filter(p => p.life > 0);
-                if (game.echoTimer <= 0) {
-                    game.echoActive = false;
-                    game.echoTimer = 0;
-                    hideTraps();
-                    playSound('echoend');
-                }
-                game.fogOffset += delta * 0.5;
-                updateHUD();
-            }
-        }
-
-        function updateHUD() {
-            hudLevel.textContent = `LEVEL ${String(game.level+1).padStart(2,'0')}/${LEVEL_CONFIGS.length}`;
-            hudScore.textContent = `SCORE ${game.score}`;
-            hudKey.textContent = `🔑 ${game.keys}`;
-            hudMoves.textContent = `MOVES ${game.moves}`;
-            hudDiff.textContent = diffLabel(game.difficulty);
-            hudDiff.className = 'diff-' + game.difficulty;
-            if (game.echoActive) {
-                echoTimerSpan.textContent = game.echoTimer.toFixed(1);
-                echoTimerSpan.className = game.echoTimer < 1.5 ? 'warning' : 'highlight';
-            } else {
-                echoTimerSpan.textContent = '—';
-                echoTimerSpan.className = 'highlight';
-            }
-            if (!game.keyCollected) {
-                hintLabel.textContent = '🔍 FIND THE KEY';
-                hintValue.textContent = game.keyHint + ' = ?';
-            } else if (game.keyCollected && !game.doorUnlocked) {
-                hintLabel.textContent = '🔑 FIND THE DOOR';
-                hintValue.textContent = game.doorHint + ' = ?';
-            } else if (game.doorUnlocked) {
-                hintLabel.textContent = '🚪 DOOR UNLOCKED';
-                hintValue.textContent = '✦ Find the exit!';
-            }
-        }
-
-        function playSound(type) {
-            if (!game.soundEnabled) return;
-            if (!game.audioCtx) game.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-            const actx = game.audioCtx;
-            try {
-                const osc = actx.createOscillator();
-                const gain = actx.createGain();
-                osc.connect(gain);
-                gain.connect(actx.destination);
-                let freq = 440, duration = 0.15, volume = 0.12;
-                if (type === 'echo') {
-                    freq = 300; duration = 0.5; volume = 0.10; osc.type = 'sine';
-                    gain.gain.setValueAtTime(0.15, actx.currentTime);
-                    gain.gain.exponentialRampToValueAtTime(0.01, actx.currentTime + duration);
-                } else if (type === 'step') { freq = 600; duration = 0.04; volume = 0.03; osc.type = 'sine'; }
-                else if (type === 'key') { freq = 880; duration = 0.2; volume = 0.12; osc.type = 'sine'; }
-                else if (type === 'death') { freq = 200; duration = 0.4; volume = 0.15; osc.type = 'sawtooth'; }
-                else if (type === 'complete') {
-                    freq = 500; duration = 0.3; volume = 0.15; osc.type = 'sine';
-                    osc.frequency.setValueAtTime(400, actx.currentTime);
-                    osc.frequency.exponentialRampToValueAtTime(800, actx.currentTime + duration);
-                } else if (type === 'echoend') {
-                    freq = 250; duration = 0.2; volume = 0.08; osc.type = 'sine';
-                    gain.gain.setValueAtTime(0.1, actx.currentTime);
-                    gain.gain.exponentialRampToValueAtTime(0.01, actx.currentTime + duration);
-                } else return;
-                osc.frequency.value = freq;
-                gain.gain.value = volume;
-                osc.start(actx.currentTime);
-                osc.stop(actx.currentTime + duration);
-            } catch (e) {}
-        }
-
-        let lastTime = 0;
-        function gameLoop(time) {
-            const delta = Math.min(0.05, (time - lastTime) / 1000);
-            lastTime = time;
-            if (game.state === 'playing') updateEcho(delta);
-            if (game.state !== 'quiz' && game.state !== 'profile') draw();
-            requestAnimationFrame(gameLoop);
-        }
-
-        function hideAllOverlays() {
-            document.querySelectorAll('.overlay').forEach(el => el.classList.remove('active'));
-            quizModal.classList.remove('active');
-        }
-
-        document.addEventListener('keydown', (e) => {
-            const key = e.key;
-            if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' '].includes(key)) e.preventDefault();
-            if (game.state === 'playing') {
-                if (key === ' ' || key === 'Space') { activateEcho(); return; }
-                if (key === 'Escape') { game.state = 'paused'; pauseOverlay.classList.add('active'); return; }
-                if (key === 'ArrowUp' || key === 'w' || key === 'W') movePlayer(0, -1);
-                else if (key === 'ArrowDown' || key === 's' || key === 'S') movePlayer(0, 1);
-                else if (key === 'ArrowLeft' || key === 'a' || key === 'A') movePlayer(-1, 0);
-                else if (key === 'ArrowRight' || key === 'd' || key === 'D') movePlayer(1, 0);
-            } else if (game.state === 'paused' && key === 'Escape') {
-                game.state = 'playing';
-                pauseOverlay.classList.remove('active');
-            }
-        });
-
-        document.getElementById('btnPlay').addEventListener('click', () => {
-            menuOverlay.classList.remove('active');
-            game.state = 'tutorial';
-            game.tutorialStep = 0;
-            game.tutorialReturnToMenu = false;
-            tutorialOverlay.classList.add('active');
-            updateTutorial();
-        });
-        // FIX: "HOW TO PLAY" now returns to the main menu when finished,
-        // instead of silently starting the game like PLAY did before.
-        document.getElementById('btnHowTo').addEventListener('click', () => {
-            menuOverlay.classList.remove('active');
-            game.state = 'tutorial';
-            game.tutorialStep = 0;
-            game.tutorialReturnToMenu = true;
-            tutorialOverlay.classList.add('active');
-            updateTutorial();
-        });
-        document.getElementById('btnExit').addEventListener('click', () => {
-            if (confirm('Exit game?')) document.body.innerHTML =
-                '<div style="display:flex;justify-content:center;align-items:center;height:100vh;background:#05080f;color:#60a5fa;font-size:24px;">MNEMOS — Remember what you cannot see.</div>';
-        });
-
-        function updateTutorial() {
-            const step = game.tutorialStep;
-            if (step >= game.tutorialSteps.length) {
-                tutorialOverlay.classList.remove('active');
-                if (game.tutorialReturnToMenu) {
-                    game.state = 'menu';
-                    menuOverlay.classList.add('active');
-                } else {
-                    game.state = 'playing';
-                    game.level = 0;
-                    loadLevel(0);
-                }
-                return;
-            }
-            document.getElementById('tutorialText').textContent = game.tutorialSteps[step];
-            document.getElementById('tutorialStep').textContent = `${step+1} / ${game.tutorialSteps.length}`;
-            document.getElementById('tutorialNext').textContent =
-                (step === game.tutorialSteps.length - 1)
-                    ? (game.tutorialReturnToMenu ? 'BACK TO MENU' : 'START')
-                    : 'NEXT';
-        }
-        document.getElementById('tutorialNext').addEventListener('click', () => { game.tutorialStep++; updateTutorial(); });
-        document.getElementById('tutorialSkip').addEventListener('click', () => {
-            tutorialOverlay.classList.remove('active');
-            if (game.tutorialReturnToMenu) {
-                game.state = 'menu';
-                menuOverlay.classList.add('active');
-            } else {
-                game.state = 'playing';
-                game.level = 0;
-                loadLevel(0);
-            }
-        });
-
-        document.getElementById('pauseResume').addEventListener('click', () => { game.state = 'playing'; pauseOverlay.classList.remove('active'); });
-        document.getElementById('pauseRestart').addEventListener('click', () => { pauseOverlay.classList.remove('active'); loadLevel(game.level); });
-        document.getElementById('pauseMenu').addEventListener('click', () => {
-            pauseOverlay.classList.remove('active');
-            game.state = 'menu';
-            hud.style.display = 'none';
-            menuOverlay.classList.add('active');
-        });
-
-        document.getElementById('completeNext').addEventListener('click', () => {
-            completeOverlay.classList.remove('active');
-            game.level++;
-            if (game.level >= LEVEL_CONFIGS.length) { showEnding(); return; }
-            loadLevel(game.level);
-        });
-        document.getElementById('completeReplay').addEventListener('click', () => { completeOverlay.classList.remove('active'); loadLevel(game.level); });
-
-        document.getElementById('gameOverRetry').addEventListener('click', () => { gameOverOverlay.classList.remove('active'); loadLevel(game.level); });
-        document.getElementById('gameOverMenu').addEventListener('click', () => {
-            gameOverOverlay.classList.remove('active');
-            game.state = 'menu';
-            hud.style.display = 'none';
-            menuOverlay.classList.add('active');
-        });
-
-        document.getElementById('profileContinue').addEventListener('click', () => {
-            profileOverlay.classList.remove('active');
-            game.level++;
-            if (game.level >= LEVEL_CONFIGS.length) { showEnding(); return; }
-            game.state = 'playing';
-            loadLevel(game.level);
-        });
-
-        game.audioCtx = null;
-        initStars();
-        game.state = 'menu';
-        menuOverlay.classList.add('active');
-        ctx.fillStyle = '#05080f';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        requestAnimationFrame(gameLoop);
-    </script>
-</body>
-</html>
+            return shuffleArray(Q_BANK.map((q, idx) => ({ ...q, idx })).filter(q => q.diff ===
