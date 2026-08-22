@@ -36,7 +36,7 @@ MNEMOS: Echo Trials is an original memory-based puzzle game...
 ![Gameplay](assets/screenshots/gameplay-grid.png)
 
 ### ECHO Lost
-![ECHO Lost](assets/screenshots/echo-lost.png)
+!echo-lost.png
 
 ### Key Challenge
 ![Key Challenge](assets/screenshots/key-challenge.png)
