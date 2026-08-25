@@ -54,8 +54,8 @@ MNEMOS: Echo Trials is an original memory-based puzzle game...
 
 ## 🤖 AI Disclosure
 
-AI tools were used for ideation, coding assistance,
-debugging, and documentation.
+AI tools were used for , assistance,
+debugging, 
 
 ## 🏆 Hackathon
 
